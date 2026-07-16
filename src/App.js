@@ -58,30 +58,61 @@ const Bookshelf = ({ title, books, onMove }) => {
 function App() {
   const [showSearchPage, setShowSearchpage] = useState(false);
   const [books, setBooks] = useState([]);
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setLoading(true);
     BooksAPI.getAll().then((books) => {
       setBooks(books);
+      setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (query) {
+      setLoading(true);
+      BooksAPI.search(query).then((results) => {
+        if (results.error) {
+          setSearchResults([]);
+        } else {
+          const updatedResults = results.map((resultBook) => {
+            const bookOnShelf = books.find((b) => b.id === resultBook.id);
+            return bookOnShelf ? bookOnShelf : { ...resultBook, shelf: "none" };
+          });
+          setSearchResults(updatedResults);
+        }
+        setLoading(false);
+      });
+    } else {
+      setSearchResults([]);
+    }
+  }, [query, books]);
 
   const moveBook = (book, shelf) => {
     BooksAPI.update(book, shelf).then(() => {
       // If the book is not on any shelf, add it.
-      if (book.shelf === 'none' || !book.shelf) {
-        const newBook = { ...book, shelf };
-        setBooks(prevBooks => [...prevBooks, newBook]);
-      } else {
-        // If the book is already on a shelf, update it.
-        setBooks(
-          books.map((b) => {
-            if (b.id === book.id) {
-              return { ...b, shelf };
-            }
-            return b;
-          })
-        );
-      }
+      const updatedBook = { ...book, shelf };
+
+      // Update the main books list
+      setBooks((prevBooks) => {
+        const bookIndex = prevBooks.findIndex((b) => b.id === book.id);
+        if (bookIndex !== -1) {
+          // If book exists, update it
+          return prevBooks.map((b) => (b.id === book.id ? updatedBook : b));
+        } else {
+          // If book is new, add it
+          return [...prevBooks, updatedBook];
+        }
+      });
+
+      // Also update the search results to reflect the change immediately
+      setSearchResults((prevResults) =>
+        prevResults.map((b) =>
+          b.id === book.id ? { ...b, shelf } : b
+        )
+      );
     });
   };
 
@@ -106,11 +137,21 @@ function App() {
               <input
                 type="text"
                 placeholder="Search by title, author, or ISBN"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
               />
             </div>
           </div>
           <div className="search-books-results">
-            <ol className="books-grid"></ol>
+            {loading ? (
+              <div className="loader">Loading...</div>
+            ) : (
+              <ol className="books-grid">
+                {searchResults.map((book) => (
+                  <Book key={book.id} book={book} onMove={moveBook} />
+                ))}
+              </ol>
+            )}
           </div>
         </div>
       ) : (
@@ -119,16 +160,20 @@ function App() {
             <h1>MyReads</h1>
           </div>
           <div className="list-books-content">
-            <div>
-              {Object.keys(shelves).map((shelf) => (
-                <Bookshelf
-                  key={shelf}
-                  title={shelves[shelf]}
-                  books={books.filter((book) => book.shelf === shelf)}
-                  onMove={moveBook}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="loader">Loading...</div>
+            ) : (
+              <div>
+                {Object.keys(shelves).map((shelf) => (
+                  <Bookshelf
+                    key={shelf}
+                    title={shelves[shelf]}
+                    books={books.filter((book) => book.shelf === shelf)}
+                    onMove={moveBook}
+                  />
+                ))}
+              </div>
+            )}
           </div>
           <div className="open-search">
             <a onClick={() => setShowSearchpage(!showSearchPage)}></a>
