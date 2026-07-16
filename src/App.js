@@ -22,7 +22,7 @@ const Book = ({ book, onMove }) => {
           ></div>
           <div className="book-shelf-changer">
             <select value={shelf} onChange={(e) => onMove(book, e.target.value)}>
-              <option value="none" disabled>
+              <option value="" disabled>
                 Move to...
               </option>
               <option value="currentlyReading">Currently Reading</option>
@@ -71,28 +71,35 @@ function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     if (query) {
       setLoading(true);
       BooksAPI.search(query).then((results) => {
-        if (results.error) {
-          setSearchResults([]);
-        } else {
-          const updatedResults = results.map((resultBook) => {
-            const bookOnShelf = books.find((b) => b.id === resultBook.id);
-            return bookOnShelf ? bookOnShelf : { ...resultBook, shelf: "none" };
-          });
-          setSearchResults(updatedResults);
+        if (!cancelled) {
+          if (results.error) {
+            setSearchResults([]);
+          } else {
+            const updatedResults = results.map((resultBook) => {
+              const bookOnShelf = books.find((b) => b.id === resultBook.id);
+              return bookOnShelf ? bookOnShelf : { ...resultBook, shelf: "none" };
+            });
+            setSearchResults(updatedResults);
+          }
+          setLoading(false);
         }
-        setLoading(false);
       });
     } else {
       setSearchResults([]);
     }
-  }, [query, books]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
 
   const moveBook = (book, shelf) => {
     BooksAPI.update(book, shelf).then(() => {
-      // If the book is not on any shelf, add it.
       const updatedBook = { ...book, shelf };
 
       // Update the main books list
@@ -106,13 +113,6 @@ function App() {
           return [...prevBooks, updatedBook];
         }
       });
-
-      // Also update the search results to reflect the change immediately
-      setSearchResults((prevResults) =>
-        prevResults.map((b) =>
-          b.id === book.id ? { ...b, shelf } : b
-        )
-      );
     });
   };
 
@@ -121,6 +121,11 @@ function App() {
     wantToRead: "Want to Read",
     read: "Read",
   };
+
+  const displayedResults = searchResults.map((result) => {
+    const shelved = books.find((b) => b.id === result.id);
+    return shelved ? shelved : result;
+  });
 
   return (
     <div className="app">
@@ -147,7 +152,7 @@ function App() {
                   <div className="loader">Loading...</div>
                 ) : (
                   <ol className="books-grid">
-                    {searchResults.map((book) => (
+                    {displayedResults.map((book) => (
                       <Book key={book.id} book={book} onMove={moveBook} />
                     ))}
                   </ol>
