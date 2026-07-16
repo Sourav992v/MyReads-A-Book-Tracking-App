@@ -1,5 +1,6 @@
 import "./App.css";
 import { useState, useEffect } from "react";
+import { Routes, Route, Link } from "react-router-dom";
 import * as BooksAPI from "./BooksAPI";
 
 const Book = ({ book, onMove }) => {
@@ -56,7 +57,6 @@ const Bookshelf = ({ title, books, onMove }) => {
 };
 
 function App() {
-  const [showSearchPage, setShowSearchpage] = useState(false);
   const [books, setBooks] = useState([]);
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -124,62 +124,68 @@ function App() {
 
   return (
     <div className="app">
-      {showSearchPage ? (
-        <div className="search-books">
-          <div className="search-books-bar">
-            <a
-              className="close-search"
-              onClick={() => setShowSearchpage(!showSearchPage)}
-            >
-              Close
-            </a>
-            <div className="search-books-input-wrapper">
-              <input
-                type="text"
-                placeholder="Search by title, author, or ISBN"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="search-books-results">
-            {loading ? (
-              <div className="loader">Loading...</div>
-            ) : (
-              <ol className="books-grid">
-                {searchResults.map((book) => (
-                  <Book key={book.id} book={book} onMove={moveBook} />
-                ))}
-              </ol>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="list-books">
-          <div className="list-books-title">
-            <h1>MyReads</h1>
-          </div>
-          <div className="list-books-content">
-            {loading ? (
-              <div className="loader">Loading...</div>
-            ) : (
-              <div>
-                {Object.keys(shelves).map((shelf) => (
-                  <Bookshelf
-                    key={shelf}
-                    title={shelves[shelf]}
-                    books={books.filter((book) => book.shelf === shelf)}
-                    onMove={moveBook}
+      <Routes>
+        <Route
+          path="/search"
+          element={
+            <div className="search-books">
+              <div className="search-books-bar">
+                <Link to="/" className="close-search">
+                  Close
+                </Link>
+                <div className="search-books-input-wrapper">
+                  <input
+                    type="text"
+                    placeholder="Search by title, author, or ISBN"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
                   />
-                ))}
+                </div>
               </div>
-            )}
-          </div>
-          <div className="open-search">
-            <a onClick={() => setShowSearchpage(!showSearchPage)}></a>
-          </div>
-        </div>
-      )}
+              <div className="search-books-results">
+                {loading ? (
+                  <div className="loader">Loading...</div>
+                ) : (
+                  <ol className="books-grid">
+                    {searchResults.map((book) => (
+                      <Book key={book.id} book={book} onMove={moveBook} />
+                    ))}
+                  </ol>
+                )}
+              </div>
+            </div>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <div className="list-books">
+              <div className="list-books-title">
+                <h1>MyReads</h1>
+              </div>
+              <div className="list-books-content">
+                {loading ? (
+                  <div className="loader">Loading...</div>
+                ) : (
+                  <div>
+                    {Object.keys(shelves).map((shelf) => (
+                      <Bookshelf
+                        key={shelf}
+                        title={shelves[shelf]}
+                        books={books.filter((book) => book.shelf === shelf)}
+                        onMove={moveBook}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="open-search">
+                <Link to="/search"></Link>
+              </div>
+            </div>
+          }
+        />
+      </Routes>
     </div>
   );
 }
