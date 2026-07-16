@@ -22,7 +22,7 @@ const Book = ({ book, onMove }) => {
           ></div>
           <div className="book-shelf-changer">
             <select value={shelf} onChange={(e) => onMove(book, e.target.value)}>
-              <option value="none" disabled>
+              <option value="" disabled>
                 Move to...
               </option>
               <option value="currentlyReading">Currently Reading</option>
